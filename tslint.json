@@ -1,0 +1,10 @@
+{
+    "options": ["experimentalDecorators"],
+    "extends": ["tslint:recommended"],
+    "rules": {
+        "interface-name": false,
+        "max-classes-per-file": false,
+        "object-literal-sort-keys": false,
+        "trailing-comma": false
+    }
+}

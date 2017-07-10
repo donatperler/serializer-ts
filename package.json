@@ -1,0 +1,27 @@
+{
+  "name": "serializer-ts",
+  "version": "0.0.1",
+  "description": "",
+  "files": [
+    "lib"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "lint": "tslint src/**/*.ts test/**/*.ts",
+    "pretest": "tsc && npm run lint",
+    "test": "mocha --compilers ts:ts-node/register --recursive"
+  },
+  "author": "Donat Perler <donat.perler@gmail.com>",
+  "license": "Apache 2.0",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chai": "^4.0.1",
+    "@types/mocha": "2.2.41",
+    "chai": "^4.0.2",
+    "mocha": "3.4.2",
+    "ts-node":"3.2.0",
+    "tslint": "5.5.0",
+    "typescript": "2.4.1"
+  }
+}
