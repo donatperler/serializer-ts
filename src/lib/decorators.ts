@@ -3,18 +3,31 @@
  */
 
 import {ConfigurationError} from "./errors";
-import {MetaData, MetaDataItem, PropertyName, Type, Validator} from "./interfaces";
-import {metaDataSymbol} from "./symbols";
+import {
+    Converter,
+    InstanceMetaData, InstanceMetaDataItem, PropertyName, StaticMetaData, StaticMetaDataItem, Type,
+    Validator, Version, VersionMetaData
+} from "./interfaces";
+import {instanceMetaDataSymbol, staticMetaDataSymbol, versionMetaDataSymbol} from "./symbols";
 import {identity} from "./types";
+
+export function version<U>(classVersion: Version, converter?: Converter<U>) {
+    return (constructor: Function) => { // tslint:disable-line ban-types
+        constructor.prototype.hasOwnProperty[versionMetaDataSymbol] = {
+            version: classVersion,
+            converter
+        };
+    };
+}
 
 export function name(objectKeyName: PropertyName) {
     return (...args: any[]) => {
         assureForPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
         if (isPropertyDecorator(args) && isStatic(args)) {
-            setMetaDataProperty(args[0], propertyName, "name", objectKeyName, () => args[0][propertyName]);
+            setStaticMetaDataProperty(args[0], propertyName, "name", objectKeyName, () => args[0][propertyName]);
         } else {
-            setMetaDataProperty(args[0], propertyName, "name", objectKeyName);
+            setInstanceMetaDataProperty(args[0], propertyName, "name", objectKeyName);
         }
     };
 }
@@ -24,9 +37,9 @@ export function type<T, U>(typeMapper: Type<T, U>) {
         assureForPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
         if (isPropertyDecorator(args) && isStatic(args)) {
-            setMetaDataProperty(args[0], propertyName, "type", typeMapper, () => args[0][propertyName]);
+            setStaticMetaDataProperty(args[0], propertyName, "type", typeMapper, () => args[0][propertyName]);
         } else {
-            setMetaDataProperty(args[0], propertyName, "type", typeMapper);
+            setInstanceMetaDataProperty(args[0], propertyName, "type", typeMapper);
         }
     };
 }
@@ -35,7 +48,7 @@ export function validate(validator: Validator<any>) {
     return (...args: any[]) => {
         assureForNonStaticPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
-        setMetaDataProperty(args[0], propertyName, "validator", validator);
+        setInstanceMetaDataProperty(args[0], propertyName, "validator", validator);
     };
 }
 
@@ -48,20 +61,20 @@ export function ignore(defaultValue?: any) {
         } else {
             propertyName = args[1];
         }
-        const metaData = getOrCreateMetaData(
+        const metaData = getOrCreateInstanceMetaData(
             (typeof args[0] === "function")
                 ? args[0].prototype
                 : args[0]
         );
-        if (metaData.has(propertyName)) {
+        if (metaData.hasOwnProperty(propertyName)) {
             throw new ConfigurationError(`Decorator ignore cannot be combined with any of the other decorators`);
         }
-        metaData.set(propertyName, {
+        metaData[propertyName] = {
             name: propertyName,
             isIncluded: false,
-            isStatic: false,
+            type: identity,
             defaultValue
-        });
+        };
     };
 }
 
@@ -103,40 +116,77 @@ function extractParamterName(functionStub: string, parameterIndex: number): stri
     throw new Error(`Failed to extract parameter name: No parameter names found in '${functionStub}'`);
 }
 
-function setMetaDataProperty<T>(target: any,
-                                propertyName: PropertyName,
-                                key: keyof MetaDataItem<T, any>,
-                                value: any,
-                                getStaticValue?: () => T) {
-    const metaData = getOrCreateMetaData((typeof target === "function") ? target.prototype : target);
-    const metaDataItem = getOrCreateMataDataItem<T>(metaData, propertyName, getStaticValue);
+function setInstanceMetaDataProperty<T>(target: any,
+                                        propertyName: PropertyName,
+                                        key: keyof InstanceMetaDataItem<T, any>,
+                                        value: any) {
+    const metaData = getOrCreateInstanceMetaData((typeof target === "function") ? target.prototype : target);
+    const metaDataItem = getOrCreateInstanceMataDataItem<T>(metaData, propertyName);
     if (!metaDataItem.isIncluded) {
         throw new ConfigurationError(`Decorator type cannot be combined with any of the other decorators`);
     }
     metaDataItem[key] = value;
 }
 
-function getOrCreateMetaData(target: any): MetaData {
-    if (target[metaDataSymbol]) {
-        return target[metaDataSymbol];
-    }
-    target[metaDataSymbol] = new Map<PropertyName, MetaDataItem<any, any>>();
-    return target[metaDataSymbol];
+function setStaticMetaDataProperty<T>(target: any,
+                                      propertyName: PropertyName,
+                                      key: keyof StaticMetaDataItem<T, any>,
+                                      value: any,
+                                      getStaticValue: () => T) {
+    const metaData = getOrCreateStaticMetaData(target.prototype);
+    const metaDataItem = getOrCreateStaticMataDataItem<T>(metaData, propertyName, getStaticValue);
+    metaDataItem[key] = value;
 }
 
-function getOrCreateMataDataItem<T>(metaData: MetaData,
-                                    key: PropertyName,
-                                    getStaticValue?: () => T): MetaDataItem<T, any> {
-    if (metaData.has(key)) {
-        return metaData.get(key) as MetaDataItem<any, any>;
+function getOrCreateInstanceMetaData(target: any): InstanceMetaData {
+    if (target.hasOwnProperty(instanceMetaDataSymbol)) {
+        return target[instanceMetaDataSymbol];
     }
-    const metaDataItem: MetaDataItem<T, any> = {
+    target[instanceMetaDataSymbol] = {};
+    return target[instanceMetaDataSymbol];
+}
+
+function getOrCreateStaticMetaData(target: any): StaticMetaData {
+    if (target.hasOwnProperty(staticMetaDataSymbol)) {
+        return target[staticMetaDataSymbol];
+    }
+    target[instanceMetaDataSymbol] = {};
+    return target[instanceMetaDataSymbol];
+}
+
+function getOrCreateVersionMetaData(target: any): VersionMetaData<any> {
+    if (target.hasOwnProperty(versionMetaDataSymbol)) {
+        return target[versionMetaDataSymbol];
+    }
+    target[versionMetaDataSymbol] = {};
+    return target[versionMetaDataSymbol];
+}
+
+function getOrCreateInstanceMataDataItem<T>(metaData: InstanceMetaData,
+                                            key: PropertyName): InstanceMetaDataItem<T, any> {
+    if (metaData.hasOwnProperty(key)) {
+        return metaData[key] as InstanceMetaDataItem<any, any>;
+    }
+    const metaDataItem: InstanceMetaDataItem<T, any> = {
         name: key,
         isIncluded: true,
-        isStatic: getStaticValue != null,
+        type: identity
+    };
+    metaData[key] = metaDataItem;
+    return metaDataItem;
+}
+
+function getOrCreateStaticMataDataItem<T>(metaData: StaticMetaData,
+                                          key: PropertyName,
+                                          getStaticValue: () => T): StaticMetaDataItem<T, any> {
+    if (metaData.hasOwnProperty(key)) {
+        return metaData[key] as StaticMetaDataItem<any, any>;
+    }
+    const metaDataItem: StaticMetaDataItem<T, any> = {
+        name: key,
         type: identity,
         getStaticValue
     };
-    metaData.set(key, metaDataItem);
+    metaData[key] = metaDataItem;
     return metaDataItem;
 }

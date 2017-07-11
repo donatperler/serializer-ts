@@ -5,9 +5,9 @@
 import {expect} from "chai";
 
 import {ignore, name, type, validate} from "../../src/lib/decorators";
-import {metaDataSymbol} from "../../src/lib/symbols";
+import {instanceMetaDataSymbol} from "../../src/lib/symbols";
 import {date, identity} from "../../src/lib/types";
-import {MetaDataItem, PropertyName} from "../../src/lib/interfaces";
+import {InstanceMetaDataItem, PropertyName} from "../../src/lib/interfaces";
 
 class Foo {
     @name("foo_bar")
@@ -26,7 +26,7 @@ class Foo {
     }
 }
 
-//console.log(`Meta: ${Array.from(Foo.prototype[metaDataSymbol].entries()).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")}`);
+//console.log(`Meta: ${Array.from(Foo.prototype[instanceMetaDataSymbol].entries()).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")}`);
 
 describe("Test module decorators", () => {
     const propertyName = "aName";
@@ -115,6 +115,6 @@ describe("Test module decorators", () => {
     });
 });
 
-function getMetaInfo<T, U>(target: object, propertyName: PropertyName): MetaDataItem<T, U> {
-    return target[metaDataSymbol].get(propertyName);
+function getMetaInfo<T, U>(target: object, propertyName: PropertyName): InstanceMetaDataItem<T, U> {
+    return target[instanceMetaDataSymbol].get(propertyName);
 }

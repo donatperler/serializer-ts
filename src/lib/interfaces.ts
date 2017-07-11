@@ -2,23 +2,39 @@
  * Created by perlerd on 2017-07-09.
  */
 
-export type DefaultValue = any;
 export type Validator<T> = (v: T) => boolean;
+export type Converter<U> = (o: object) => U;
 export type PropertyName = string;
+export type Version = number;
 
 export interface Type<T, U> {
     instanceToObject: (v: T) => U;
     objectToInstance: (v: U) => T;
 }
 
-export interface MetaDataItem<T, U> {
+export interface InstanceMetaDataItem<T, U> {
     name: string;
     isIncluded: boolean;
-    isStatic: boolean;
-    type?: Type<T, U>;
+    type: Type<T, U>;
     defaultValue?: T;
-    getStaticValue?: () => T;
     validator?: Validator<T>;
 }
 
-export type MetaData = Map<PropertyName, MetaDataItem<any, any>>;
+export interface StaticMetaDataItem<T, U> {
+    name: string;
+    type: Type<T, U>;
+    getStaticValue: () => T;
+}
+
+export interface InstanceMetaData {
+    [key: string]: InstanceMetaDataItem<any, any>;
+}
+
+export interface StaticMetaData {
+    [key: string]: StaticMetaDataItem<any, any>;
+}
+
+export interface VersionMetaData<U> {
+    version: Version;
+    converter: Converter<U>;
+}
