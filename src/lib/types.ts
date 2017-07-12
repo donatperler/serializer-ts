@@ -3,6 +3,7 @@
  */
 
 import {Type} from "./interfaces";
+import {objectToSelf} from "./transforms";
 
 export const identity: Type<any, any> = {
     instanceToObject: (v: any) => v,
@@ -31,6 +32,17 @@ export function map<VT, VU, KT, KU>(valueType: Type<VT, VU> = identity,
         objectToInstance: (arry: Array<[KU, VU]> | null) => handleNull(arry, (a) => new Map<KT, VT>(a
             .map(([key, value]): [KT, VT] => [keyType.objectToInstance(key), valueType.objectToInstance(value)])
         ))
+    };
+}
+
+export function serializable<T, U extends object>(constructor: Function): Type<T, U> { // tslint:disable-line ban-types
+    return {
+        instanceToObject: identity.instanceToObject,
+        objectToInstance: (obj: U): T => {
+            const prototype = constructor.prototype;
+            const instance = Object.create(prototype);
+            return Object.assign(instance, objectToSelf(prototype, constructor.name, obj));
+        }
     };
 }
 
