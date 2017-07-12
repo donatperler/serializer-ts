@@ -27,7 +27,7 @@ export function name(objectKeyName: PropertyName) {
     };
 }
 
-export function type<T, U>(typeMapper: Type<T, U> | Function) { // tslint:disable-line ban-types
+export function type<T, U>(typeMapper: Type<T, U | object> | Function) { // tslint:disable-line ban-types
     return (...args: any[]) => {
         assureForPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
