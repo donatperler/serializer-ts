@@ -103,7 +103,7 @@ function assureForNonStaticPropertyAndConstructorDecorator(args: any[]) {
 
 function extractParamterName(functionStub: string, parameterIndex: number): string {
     for (const line of functionStub.split("\n")) {
-        const match = line.match(/constructor\(([^\)]*)\)/);
+        const match = line.match(/constructor\(([^)]*)\)/);
         if (match) {
             const parmeterNames = match[1].split(",");
             if (parameterIndex < parmeterNames.length) {
