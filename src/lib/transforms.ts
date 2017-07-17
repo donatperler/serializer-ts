@@ -128,7 +128,8 @@ export function objectToSelf(prototype: object,
                              obj: object): object {
     const self = {};
     const versionMetaData = metaData.getVersionMetaData(prototype);
-    const staticObjectProperties = metaData.getStaticObjectProperties(prototype);
+    const staticMetaData = metaData.getStaticMetaData(prototype);
+    const staticObjectProperties = metaData.getStaticObjectProperties(staticMetaData);
     const instanceMetaData = metaData.invert(metaData.getInstanceMetaData(prototype));
     if (versionMetaData) {
         staticObjectProperties.add("version");

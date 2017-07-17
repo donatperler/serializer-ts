@@ -58,6 +58,11 @@ describe("Test module types", () => {
         });
     });
 
+    /*
+    describe("Test serializable", () => {
+
+    });*/
+
     describe("Test toString", () => {
         const n = new Number(1); // tslint:disable-line no-construct
         const str = "1";

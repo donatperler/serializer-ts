@@ -3,7 +3,7 @@
  */
 
 export type Validator<T> = (v: T) => boolean;
-export type Converter<U> = (o: object) => U;
+export type Migrator<U> = (o: object) => U;
 export type PropertyName = string;
 export type Version = number;
 

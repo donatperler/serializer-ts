@@ -3,7 +3,7 @@
  */
 
 import {ConfigurationError} from "./errors";
-import {Converter, PropertyName, Type, Validator, Version} from "./interfaces";
+import {Migrator, PropertyName, Type, Validator, Version} from "./interfaces";
 import {instanceMetaDataSymbol, staticMetaDataSymbol, versionMetaDataSymbol} from "./symbols";
 import {identity} from "./types";
 
@@ -31,12 +31,13 @@ export interface StaticMetaData {
 
 export interface VersionMetaData<U> {
     version: Version;
-    converter: Converter<U>;
+    migrator: Migrator<U>;
 }
 
 export function getInstanceMetaData(prototype: object): InstanceMetaData {
-    const parentsMetaData = Object.getPrototypeOf(prototype)
-        ? getInstanceMetaData(prototype)
+    const parentsPrototype = Object.getPrototypeOf(prototype);
+    const parentsMetaData = parentsPrototype
+        ? getInstanceMetaData(parentsPrototype)
         : {};
     const myMetaData = (prototype.hasOwnProperty(instanceMetaDataSymbol))
         ? prototype[instanceMetaDataSymbol]
@@ -59,8 +60,8 @@ export function getVersionMetaData<U>(prototype: object): VersionMetaData<U> {
     return prototype[versionMetaDataSymbol];
 }
 
-export function getStaticObjectProperties(prototype: object): Set<PropertyName> {
-    return getStaticMetaData(prototype)
+export function getStaticObjectProperties(metaData: StaticMetaData[]): Set<PropertyName> {
+    return metaData
         .reduce((set, meta) => {
             Object.keys(meta).forEach((key) => set.add(meta[key].name));
             return set;
@@ -79,39 +80,46 @@ export function invert<M extends InstanceMetaData | StaticMetaData>(metaData: M)
     }, {} as M);
 }
 
-export function setInstanceMetaDataProperty<T>(target: any,
-                                               propertyName: PropertyName,
-                                               key: keyof InstanceMetaDataItem<T, any>,
-                                               value: any) {
+export function setInstanceProperty<T, U, K extends keyof InstanceMetaDataItem<T, U>>(
+    target: object | Function,  // tslint:disable-line ban-types
+    propertyName: PropertyName,
+    key: K,
+    value: InstanceMetaDataItem<T, U>[K]
+) {
     const metaData = getOrCreateOwnInstanceMetaData((typeof target === "function") ? target.prototype : target);
-    const metaDataItem = getOrCreateOwnInstanceMataDataItem<T>(metaData, propertyName);
+    const metaDataItem = getOrCreateInstanceMataDataItem<T, U>(metaData, propertyName);
     if (!metaDataItem.isIncluded) {
-        throw new ConfigurationError(`Decorator type cannot be combined with any of the other decorators`);
+        throw new ConfigurationError(`Decorator ignore cannot be combined with any of the other decorators`);
+    }
+    if (key === "isIncluded") {
+        throw new ConfigurationError(`This method cannot be used to set property 'isIncluded'`);
     }
     metaDataItem[key] = value;
 }
 
-export function setStaticMetaDataProperty<T>(target: any,
-                                             propertyName: PropertyName,
-                                             key: keyof StaticMetaDataItem<T, any>,
-                                             value: any,
-                                             getStaticValue: () => T) {
-    const metaData = getOrCreateOwnStaticMetaData(target.prototype);
-    const metaDataItem = getOrCreateOwnStaticMataDataItem<T>(metaData, propertyName, getStaticValue);
+export function setStaticProperty<T, U, K extends keyof StaticMetaDataItem<T, U>>(
+    constructor: Function,  // tslint:disable-line ban-types
+    propertyName: PropertyName,
+    key: K,
+    value: StaticMetaDataItem<T, U>[K],
+    getStaticValue: () => T
+) {
+    const metaData = getOrCreateOwnStaticMetaData(constructor.prototype);
+    const metaDataItem = getOrCreateStaticMataDataItem<T, U>(metaData, propertyName, getStaticValue);
     metaDataItem[key] = value;
 }
 
 export function setVersion<U>(constructor: Function, // tslint:disable-line: ban-types
                               version: Version,
-                              converter?: Converter<U>) {
+                              migrator?: Migrator<U>) {
     if (constructor.prototype.hasOwnProperty(versionMetaDataSymbol)) {
         throw new ConfigurationError(`Failed setting version for class ${constructor.name}: Version already set`);
     }
-    constructor.prototype[versionMetaDataSymbol] = {version, converter};
+    constructor.prototype[versionMetaDataSymbol] = {version, migrator};
 
 }
 
-export function getOrCreateOwnInstanceMetaData(target: any): InstanceMetaData {
+export function getOrCreateOwnInstanceMetaData(target: object): InstanceMetaData {
     if (target.hasOwnProperty(instanceMetaDataSymbol)) {
         return target[instanceMetaDataSymbol];
     }
@@ -119,20 +127,20 @@ export function getOrCreateOwnInstanceMetaData(target: any): InstanceMetaData {
     return target[instanceMetaDataSymbol];
 }
 
-export function getOrCreateOwnStaticMetaData(target: any): StaticMetaData {
+export function getOrCreateOwnStaticMetaData(target: object): StaticMetaData {
     if (target.hasOwnProperty(staticMetaDataSymbol)) {
         return target[staticMetaDataSymbol];
     }
-    target[instanceMetaDataSymbol] = {};
-    return target[instanceMetaDataSymbol];
+    target[staticMetaDataSymbol] = {};
+    return target[staticMetaDataSymbol];
 }
 
-export function getOrCreateOwnInstanceMataDataItem<T>(metaData: InstanceMetaData,
-                                                      key: PropertyName): InstanceMetaDataItem<T, any> {
+export function getOrCreateInstanceMataDataItem<T, U>(metaData: InstanceMetaData,
+                                                      key: PropertyName): InstanceMetaDataItem<T, U> {
     if (metaData.hasOwnProperty(key)) {
         return metaData[key] as InstanceMetaDataItem<any, any>;
     }
-    const metaDataItem: InstanceMetaDataItem<T, any> = {
+    const metaDataItem: InstanceMetaDataItem<T, U> = {
         name: key,
         isIncluded: true,
         type: identity
@@ -141,9 +149,9 @@ export function getOrCreateOwnInstanceMataDataItem<T>(metaData: InstanceMetaData
     return metaDataItem;
 }
 
-export function getOrCreateOwnStaticMataDataItem<T>(metaData: StaticMetaData,
+export function getOrCreateStaticMataDataItem<T, U>(metaData: StaticMetaData,
                                                     key: PropertyName,
-                                                    getStaticValue: () => T): StaticMetaDataItem<T, any> {
+                                                    getStaticValue: () => T): StaticMetaDataItem<T, U> {
     if (metaData.hasOwnProperty(key)) {
         return metaData[key] as StaticMetaDataItem<any, any>;
     }

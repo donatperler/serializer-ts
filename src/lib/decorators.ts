@@ -3,11 +3,11 @@
  */
 
 import {ConfigurationError} from "./errors";
-import {Converter, PropertyName, Type, Validator, Version} from "./interfaces";
+import {Migrator, PropertyName, Type, Validator, Version} from "./interfaces";
 import * as metaData from "./meta-data";
 import {identity, serializable} from "./types";
 
-export function version<U>(classVersion: Version, converter?: Converter<U>) {
+export function version<U>(classVersion: Version, converter?: Migrator<U>) {
     return (constructor: Function) => { // tslint:disable-line ban-types
         metaData.setVersion(constructor, classVersion, converter);
     };
@@ -18,11 +18,11 @@ export function name(objectKeyName: PropertyName) {
         assureForPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
         if (isPropertyDecorator(args) && isStatic(args)) {
-            metaData.setStaticMetaDataProperty(
+            metaData.setStaticProperty(
                 args[0], propertyName, "name", objectKeyName, () => args[0][propertyName]
             );
         } else {
-            metaData.setInstanceMetaDataProperty(args[0], propertyName, "name", objectKeyName);
+            metaData.setInstanceProperty(args[0], propertyName, "name", objectKeyName);
         }
     };
 }
@@ -35,9 +35,9 @@ export function type<T, U>(typeMapper: Type<T, U | object> | Function) { // tsli
             typeMapper = serializable(typeMapper);
         }
         if (isPropertyDecorator(args) && isStatic(args)) {
-            metaData.setStaticMetaDataProperty(args[0], propertyName, "type", typeMapper, () => args[0][propertyName]);
+            metaData.setStaticProperty(args[0], propertyName, "type", typeMapper, () => args[0][propertyName]);
         } else {
-            metaData.setInstanceMetaDataProperty(args[0], propertyName, "type", typeMapper);
+            metaData.setInstanceProperty(args[0], propertyName, "type", typeMapper);
         }
     };
 }
@@ -46,7 +46,7 @@ export function validate(validator: Validator<any>) {
     return (...args: any[]) => {
         assureForNonStaticPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
-        metaData.setInstanceMetaDataProperty(args[0], propertyName, "validator", validator);
+        metaData.setInstanceProperty(args[0], propertyName, "validator", validator);
     };
 }
 
@@ -113,4 +113,3 @@ function extractParamterName(functionStub: string, parameterIndex: number): stri
     }
     throw new Error(`Failed to extract parameter name: No parameter names found in '${functionStub}'`);
 }
-
