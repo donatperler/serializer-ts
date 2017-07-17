@@ -6,8 +6,7 @@ import {expect} from "chai";
 
 import {ignore, name, type, validate, version} from "../../src/lib/decorators";
 import {ConfigurationError} from "../../src/lib/errors";
-import {PropertyName} from "../../src/lib/interfaces";
-import {getVersionMetaData, InstanceMetaDataItem, StaticMetaDataItem} from "../../src/lib/meta-data";
+import * as metaData from "../../src/lib/meta-data";
 import {instanceMetaDataSymbol, staticMetaDataSymbol} from "../../src/lib/symbols";
 import {date, identity} from "../../src/lib/types";
 
@@ -35,13 +34,15 @@ describe("Test module decorators", () => {
         function migrator(o: object) {
             return undefined;
         }
+        const Base = version(2, migrator)(class {});
+        const Derived = version(3)(class extends Base {});
 
-        function ConstructorFn() {
-            return undefined;
-        }
-
-        version(1, migrator)(ConstructorFn);
-        expect(getVersionMetaData(Object.create(ConstructorFn.prototype))).to.be.eql({version: 1, migrator});
+        it("should decorate a class by a version", () => {
+            expect(metaData.getVersionMetaData(new Base())).to.be.eql({version: 2, migrator});
+        });
+        it("should include migrator of the base class", () => {
+            expect(metaData.getVersionMetaData(new Derived())).to.be.eql({version: 3, migrator});
+        });
     });
 
     describe("Test decorator name", () => {
@@ -125,11 +126,14 @@ describe("Test module decorators", () => {
     });
 });
 
-function getInstanceMetaInfo<T, U>(target: object, propertyName: PropertyName): InstanceMetaDataItem<T, U> {
+function getInstanceMetaInfo<T, U>(
+    target: object,
+    propertyName: metaData.PropertyName
+): metaData.InstanceMetaDataItem<T, U> {
     return target[instanceMetaDataSymbol][propertyName];
 }
 
 function getStaticMetaInfo<T, U>(constructor: Function, // tslint:disable-line ban-types
-                                 propertyName: PropertyName): StaticMetaDataItem<T, U> {
+                                 propertyName: metaData.PropertyName): metaData.StaticMetaDataItem<T, U> {
     return constructor.prototype[staticMetaDataSymbol][propertyName];
 }

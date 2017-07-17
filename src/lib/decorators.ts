@@ -3,17 +3,23 @@
  */
 
 import {ConfigurationError} from "./errors";
-import {Migrator, PropertyName, Type, Validator, Version} from "./interfaces";
 import * as metaData from "./meta-data";
-import {identity, serializable} from "./types";
+import {identity, serializable, Type} from "./types";
 
-export function version<U>(classVersion: Version, converter?: Migrator<U>) {
-    return (constructor: Function) => { // tslint:disable-line ban-types
+export function version<U>(classVersion: metaData.Version, converter?: metaData.Migrator<U>) {
+    return <C extends Function>(constructor: C): C => { // tslint:disable-line ban-types
+        if (converter == null) {
+            const parentsVersionMetaData = metaData.getVersionMetaData(constructor.prototype);
+            if (parentsVersionMetaData && (parentsVersionMetaData.migrator != null)) {
+                converter = parentsVersionMetaData.migrator as metaData.Migrator<U>;
+            }
+        }
         metaData.setVersion(constructor, classVersion, converter);
+        return constructor;
     };
 }
 
-export function name(objectKeyName: PropertyName) {
+export function name(objectKeyName: metaData.PropertyName) {
     return (...args: any[]) => {
         assureForPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
@@ -42,7 +48,7 @@ export function type<T, U>(typeMapper: Type<T, U | object> | Function) { // tsli
     };
 }
 
-export function validate(validator: Validator<any>) {
+export function validate(validator: metaData.Validator<any>) {
     return (...args: any[]) => {
         assureForNonStaticPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);

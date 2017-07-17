@@ -133,26 +133,31 @@ export function objectToSelf(prototype: object,
     const instanceMetaData = metaData.invert(metaData.getInstanceMetaData(prototype));
     if (versionMetaData) {
         staticObjectProperties.add("version");
+        if (versionMetaData.migrator != null) {
+            obj = versionMetaData.migrator(obj);
+        }
     }
     Object.keys(obj).forEach((key) => {
         if (!staticObjectProperties.has(key)) {
             if (instanceMetaData.hasOwnProperty(key)) {
                 const meta = instanceMetaData[key];
-                let tmp;
                 if (meta.isIncluded) {
-                    tmp = meta.type.objectToInstance(obj[key]);
-                    if ((meta.validator) && (!meta.validator(tmp))) {
-                        throw new RuntimeError(`Failed valdiating ${constructorName}.${key}`);
+                    self[meta.name] = meta.type.objectToInstance(obj[key]);
+                    if ((meta.validator) && (!meta.validator(self[meta.name]))) {
+                        throw new RuntimeError(`Failed validating ${constructorName}.${key}`);
                     }
-                } else {
-                    tmp = meta.defaultValue;
                 }
-                self[meta.name] = tmp;
             } else {
                 self[key] = obj[key];
             }
         }
     });
+    Object.keys(instanceMetaData)
+        .filter((key) => (!instanceMetaData[key].isIncluded))
+        .forEach((key) => {
+            const meta = instanceMetaData[key];
+            self[meta.name] = meta.defaultValue;
+        });
     return self;
 }
 
@@ -165,12 +170,12 @@ export function deserialize<T>(cls: { new: (...args: any[]) => T, prototype: obj
     return objectToInstance(cls, JSON.parse(jsonString));
 }
 
-function isSerializable(obj: object): boolean {
+export function isSerializable(obj: object): boolean {
     return (instanceMetaDataSymbol in obj) ||
         (staticMetaDataSymbol in obj) ||
         (versionMetaDataSymbol in obj);
 }
 
-function isIterable(obj: object): boolean {
+export function isIterable(obj: object): boolean {
     return obj[Symbol.iterator] != null;
 }

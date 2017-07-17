@@ -3,9 +3,13 @@
  */
 
 import {ConfigurationError} from "./errors";
-import {Migrator, PropertyName, Type, Validator, Version} from "./interfaces";
 import {instanceMetaDataSymbol, staticMetaDataSymbol, versionMetaDataSymbol} from "./symbols";
-import {identity} from "./types";
+import {identity, Type} from "./types";
+
+export type Validator<T> = (v: T) => boolean;
+export type Migrator<U> = (o: object) => U;
+export type PropertyName = string;
+export type Version = number;
 
 export interface InstanceMetaDataItem<T, U> {
     name: PropertyName;

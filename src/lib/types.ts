@@ -2,8 +2,12 @@
  * Created by perlerd on 2017-07-09.
  */
 
-import {Type} from "./interfaces";
 import {objectToSelf} from "./transforms";
+
+export interface Type<T, U> {
+    instanceToObject: (v: T) => U;
+    objectToInstance: (v: U) => T;
+}
 
 export const identity: Type<any, any> = {
     instanceToObject: (v: any) => v,
