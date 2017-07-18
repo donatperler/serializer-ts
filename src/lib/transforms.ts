@@ -10,7 +10,7 @@ export function instanceToObject(value: any): any {
     return instToObj(value, new Set<object>());
 }
 
-function instToObj(instance: any, set: Set<object>): object | undefined {
+export function instToObj(instance: any, set: Set<object>): object | undefined {
     let result: object | undefined;
     switch (typeof instance) {
         case "object":
@@ -38,7 +38,7 @@ function instToObj(instance: any, set: Set<object>): object | undefined {
     return result;
 }
 
-function decoratedInstToObj(instance: object, set: Set<object>): object {
+export function decoratedInstToObj(instance: object, set: Set<object>): object {
     const prototype = Object.getPrototypeOf(instance);
     const object: object = metaData
         .getStaticMetaData(prototype)
@@ -53,7 +53,7 @@ function decoratedInstToObj(instance: object, set: Set<object>): object {
                             metaItem.name + "' from an ancestor class"
                         );
                     }
-                    const tmp = metaItem.type.instanceToObject(metaItem.getStaticValue());
+                    const tmp = metaItem.type.instanceToObject(metaItem.getStaticValue(), set);
                     if (tmp !== undefined) {
                         o[metaItem.name] = tmp;
                     }
@@ -69,7 +69,7 @@ function decoratedInstToObj(instance: object, set: Set<object>): object {
                     "with name '" + metaItem.name + "' from a static property"
                 );
             }
-            const tmp = metaItem.type.instanceToObject(instance[key]);
+            const tmp = metaItem.type.instanceToObject(instance[key], set);
             if (tmp !== undefined) {
                 object[metaItem.name] = tmp;
             }

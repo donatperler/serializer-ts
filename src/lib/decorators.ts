@@ -33,17 +33,17 @@ export function name(objectKeyName: metaData.PropertyName) {
     };
 }
 
-export function type<T, U>(typeMapper: Type<T, U | object> | Function) { // tslint:disable-line ban-types
+export function type<T, U>(typeMapper: Type<T, U | object> | (new(...args: any[]) => T)) {
     return (...args: any[]) => {
         assureForPropertyAndConstructorDecorator(args);
         const propertyName: string = args[1] || extractParamterName(args[0].toString(), args[2]);
         if (typeof typeMapper === "function") {
-            typeMapper = serializable(typeMapper);
+            typeMapper = serializable(typeMapper as any) as any;
         }
         if (isPropertyDecorator(args) && isStatic(args)) {
-            metaData.setStaticProperty(args[0], propertyName, "type", typeMapper, () => args[0][propertyName]);
+            metaData.setStaticProperty(args[0], propertyName, "type", typeMapper as any, () => args[0][propertyName]);
         } else {
-            metaData.setInstanceProperty(args[0], propertyName, "type", typeMapper);
+            metaData.setInstanceProperty(args[0], propertyName, "type", typeMapper as any);
         }
     };
 }
