@@ -69,7 +69,7 @@ function decoratedInstToObj(instance: object, set: Set<object>): object {
                     "with name '" + metaItem.name + "' from a static property"
                 );
             }
-            const tmp = metaItem.type.instanceToObject(instToObj(instance[key], set));
+            const tmp = metaItem.type.instanceToObject(instance[key]);
             if (tmp !== undefined) {
                 object[metaItem.name] = tmp;
             }
@@ -110,15 +110,11 @@ function ordinaryInstToObj(instance: object, set: Set<object>): object {
     }, {});
 }
 
-export function objectToInstance<T>(constructor: { new: (...args: any[]) => T, prototype: object, name: string },
-                                    obj: object): T {
+export function objectToInstance<T>(constructor: new (...args: any[]) => T, obj: object): T {
     const prototype = constructor.prototype;
-    let self = {};
-    if (isSerializable(obj)) {
-        objectToSelf(prototype, constructor.name, obj);
-    } else {
-        self = obj;
-    }
+    const self = (isSerializable(prototype))
+        ? objectToSelf(prototype, constructor.name, obj)
+        : obj;
     const instance = Object.create(prototype);
     return Object.assign(instance, self);
 }
@@ -133,7 +129,9 @@ export function objectToSelf(prototype: object,
     const instanceMetaData = metaData.invert(metaData.getInstanceMetaData(prototype));
     if (versionMetaData) {
         staticObjectProperties.add("version");
-        if (versionMetaData.migrator != null) {
+        if ((versionMetaData.migrator != null) &&
+            (obj.hasOwnProperty("version")) &&
+            (obj["version"] < versionMetaData.version)) { // tslint:disable-line
             obj = versionMetaData.migrator(obj);
         }
     }
@@ -165,8 +163,7 @@ export function serialize<T>(instance: T): string {
     return JSON.stringify(instanceToObject(instance));
 }
 
-export function deserialize<T>(cls: { new: (...args: any[]) => T, prototype: object, name: string },
-                               jsonString: string): T {
+export function parse<T>(cls: new (...args: any[]) => T, jsonString: string): T {
     return objectToInstance(cls, JSON.parse(jsonString));
 }
 

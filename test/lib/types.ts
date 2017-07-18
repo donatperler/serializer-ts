@@ -60,7 +60,11 @@ describe("Test module types", () => {
 
     /*
     describe("Test serializable", () => {
-
+        class A {
+            @type(types.date)
+            public date: Date;
+        }
+        it("should transform object of class A to")
     });*/
 
     describe("Test toString", () => {
