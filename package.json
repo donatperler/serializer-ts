@@ -1,7 +1,24 @@
 {
   "name": "serializer-ts",
-  "version": "0.0.1",
-  "description": "",
+  "version": "0.0.2",
+  "description": "Convert JavaScript/TypeScript classes to JSON or objects containing JSON types and vis versa",
+  "keywords": [
+    "serialize",
+    "deserialize",
+    "serialization",
+    "json",
+    "javascript",
+    "typescript",
+    "class",
+    "decorator"
+  ],
+  "bugs": {
+    "url": "https://github.com/perlerd/serializer-ts/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/perlerd/serializer-ts.git"
+  },
   "files": [
     "lib"
   ],
@@ -13,7 +30,7 @@
     "test": "mocha --compilers ts:ts-node/register --recursive"
   },
   "author": "Donat Perler <donat.perler@gmail.com>",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "dependencies": {},
   "devDependencies": {
     "@types/chai": "^4.0.1",
